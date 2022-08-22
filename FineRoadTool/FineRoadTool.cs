@@ -732,6 +732,7 @@ namespace FineRoadTool
                     continue;
                 }
 
+
                 var prefab = RoadPrefab.GetPrefab(info);
                 if ((nodes[i].m_flags & NetNode.Flags.Underground) == NetNode.Flags.Underground)
                 {
@@ -742,18 +743,22 @@ namespace FineRoadTool
 
                     if ((info.m_setVehicleFlags & Vehicle.Flags.Underground) == 0 && info != prefab.roadAI.tunnel && info != prefab.roadAI.slope && !info.m_netAI.IsUnderground())
                     {
-                        nodes[i].m_elevation = 0;
-                        nodes[i].m_flags = nodes[i].m_flags & ~NetNode.Flags.Underground;
-                        if (info != prefab.roadAI.elevated && info != prefab.roadAI.bridge)
-                        {
-                            nodes[i].m_flags = nodes[i].m_flags | NetNode.Flags.OnGround;
-                        }
-                        // Updating terrain
-                        try
-                        {
-                            TerrainModify.UpdateArea(nodes[i].m_bounds.min.x, nodes[i].m_bounds.min.z, nodes[i].m_bounds.max.x, nodes[i].m_bounds.max.z, true, true, false);
-                        }
-                        catch { }
+                        int tempI = i;
+                        var tempPrefab = prefab;
+                        Singleton<SimulationManager>.instance.AddAction(() => {
+                            nodes[tempI].m_elevation = 0;
+                            nodes[tempI].m_flags = nodes[tempI].m_flags & ~NetNode.Flags.Underground;
+                            if (info != prefab.roadAI.elevated && info != tempPrefab.roadAI.bridge)
+                            {
+                                nodes[tempI].m_flags = nodes[tempI].m_flags | NetNode.Flags.OnGround;
+                            }
+                            // Updating terrain
+                            try
+                            {
+                                TerrainModify.UpdateArea(nodes[tempI].m_bounds.min.x, nodes[tempI].m_bounds.min.z, nodes[tempI].m_bounds.max.x, nodes[tempI].m_bounds.max.z, true, true, false);
+                            }
+                            catch { }
+                        });
                     }
                 }
                 else if ( (info != prefab.roadAI.elevated && info != prefab.roadAI.bridge) || ((nodes[i].m_flags & (NetNode.Flags.Transition | NetNode.Flags.End)) != 0 && nodes[i].m_elevation == 0) )
@@ -762,6 +767,12 @@ namespace FineRoadTool
                 }
                 else
                 {
+
+                    if (info.m_netAI is PedestrianBridgeAI)
+                    {
+                        continue;
+                    }
+
                     nodes[i].m_flags = nodes[i].m_flags & ~NetNode.Flags.OnGround;
                 }
             }
